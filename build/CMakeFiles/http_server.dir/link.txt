@@ -1,0 +1,1 @@
+/usr/bin/gcc -g -rdynamic CMakeFiles/http_server.dir/server.c.o -o http_server 

@@ -1,0 +1,1 @@
+ gcc -o build/server server.c -lpthread -lssl -lcrypto

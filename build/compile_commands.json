@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/saf/http_server/build",
+  "command": "/usr/bin/gcc   -g -std=gnu99 -o CMakeFiles/http_server.dir/server.c.o -c /home/saf/http_server/server.c",
+  "file": "/home/saf/http_server/server.c",
+  "output": "CMakeFiles/http_server.dir/server.c.o"
+}
+]
