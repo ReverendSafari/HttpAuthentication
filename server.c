@@ -10,10 +10,15 @@
 #include <sys/sendfile.h>
 #include <sys/stat.h>
 #include <errno.h>
-#include <signal.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <sys/wait.h> // Include this header for waitpid
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <signal.h> //For signals
+#include <openssl/bio.h> //For decode 64 
+#include <openssl/evp.h> //For decode64
+#include <sys/wait.h> // for waitpid
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Port server will run on
 #define PORT 8081
@@ -140,6 +145,8 @@ int main(int argc, char const *argv[])
             //Check if client is authorized
             check_authorization(buffer, new_socket);
 
+/////////////////////////////////////////////////////////////////////
+
             printf("\n buffer message: %s \n ", buffer);
             char *parse_string_method = parse_method(buffer, " ");  //Try to get the path which the client ask for
             printf("Client method: %s\n", parse_string_method);
@@ -261,8 +268,11 @@ int main(int argc, char const *argv[])
         }
         else{
             printf(">>>>>>>>>>Parent create child with pid: %d <<<<<<<<<", pid);
+
+            ////////////////////////////////////////////////////////////////////
             child_pids[num_children++] = pid; // Store child PID
             close(new_socket);
+            ////////////////////////////////////////////////////////////////////
         }
     }
 
@@ -399,27 +409,33 @@ int send_message(int fd, char image_path[], char head[]){
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Method that decodes the base64 string (Our crendentials)
 int base64_decode(const char *base64_input, char *decoded_output, int decoded_length)
 {
     BIO *bio, *b64;
 
     int decode_len, final_len;
 
-    bio = BIO_new_mem_buf(base64_input, -1);
-    b64 = BIO_new(BIO_f_base64());
-    bio = BIO_push(b64, bio);
+    bio = BIO_new_mem_buf(base64_input, -1); //Create memory object with our string
+    b64 = BIO_new(BIO_f_base64()); //Create new filter object to decode base64 
+    bio = BIO_push(b64, bio); //Push the filter to the memory object
 
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); // Do not use newlines to flush buffer
-    decode_len = BIO_read(bio, decoded_output, strlen(base64_input));
+    decode_len = BIO_read(bio, decoded_output, strlen(base64_input)); //Decode the string
     // Ensure NULL termination
-    decoded_output[decode_len] = '\0';
+    decoded_output[decode_len] = '\0'; // Add null terminator to the end of the string
 
-    BIO_free_all(bio);
-    return decode_len;
+    BIO_free_all(bio); //Clean up the memory object
+    return decode_len; //Return the length of the decoded string
 }
 
+// This is the method to check the authorization, if their is no authorization header present or credentials are wrong, it will send 401 Unauthorized
+// If not it will allow loop to continue and handle the request
 void check_authorization(char *buffer, int socket_fd)
 {
+   //Check for auth header 
    char *header_start = strstr(buffer, "Authorization: Basic ");
    if (header_start)
    {
@@ -435,7 +451,7 @@ void check_authorization(char *buffer, int socket_fd)
          printf("Authenticated\n");
          // Proceed with handling the request
       }
-      else
+      else // Invalid credentials return 401
       {
          printf("Failed authentication\n");
          char *response = "HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"Access to the site\"\r\n\r\n";
@@ -443,10 +459,12 @@ void check_authorization(char *buffer, int socket_fd)
          exit(0); // Close this process
       }
    }
-   else
+   else // No auth header return 401
    {
       char *response = "HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"Access to the site\"\r\n\r\n";
       write(socket_fd, response, strlen(response));
       exit(0); // Close this process
    }
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
